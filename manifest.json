@@ -1,0 +1,9 @@
+{
+  "id": "rich-mindmap",
+  "name": "Rich Mindmap",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "A free mindmap plugin with rich tree-style rendering, compatible with Markmind JSON format.",
+  "author": "zhangchaocun",
+  "isDesktopOnly": false
+}

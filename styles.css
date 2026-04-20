@@ -1,0 +1,152 @@
+.mindmap-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: var(--background-primary);
+}
+
+.mindmap-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.mindmap-svg:active {
+  cursor: grabbing;
+}
+
+/* Root node (depth 0): filled blue */
+.mindmap-node-rect.root-node {
+  fill: #4A7DDB;
+  stroke: #3A6BC5;
+  stroke-width: 2;
+  rx: 8;
+  ry: 8;
+}
+
+.mindmap-node:hover .mindmap-node-rect.root-node {
+  filter: drop-shadow(0 2px 6px rgba(74, 125, 219, 0.4));
+}
+
+/* Level 1 nodes: rounded rect with light border */
+.mindmap-node-rect.level1-node {
+  fill: var(--background-secondary);
+  stroke: #bbb;
+  stroke-width: 1.5;
+  filter: none;
+}
+
+.mindmap-node:hover .mindmap-node-rect.level1-node {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
+}
+
+/* Selected state */
+.mindmap-node.selected .mindmap-node-rect {
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
+/* Leaf node selected: show highlight */
+.mindmap-node.selected .mindmap-node-rect.leaf-node {
+  fill: var(--background-modifier-hover);
+  stroke: var(--interactive-accent);
+  stroke-width: 2;
+  rx: 4;
+  ry: 4;
+  filter: none;
+}
+
+/* Depth 2+ underline */
+.mindmap-node-underline {
+  stroke: #bbb;
+  stroke-width: 1.5;
+}
+
+.mindmap-node.selected .mindmap-node-underline {
+  stroke: var(--interactive-accent);
+  stroke-width: 2.5;
+}
+
+/* Node text */
+.mindmap-node-text {
+  fill: var(--text-normal);
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Root text: white */
+.mindmap-node-text.root-node-text {
+  fill: #ffffff;
+  font-weight: 600;
+}
+
+/* Connection lines */
+.mindmap-line {
+  fill: none;
+  stroke: #999;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Expand/collapse button */
+.mindmap-expand-btn {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.mindmap-expand-btn:hover {
+  opacity: 1;
+}
+
+.mindmap-expand-btn circle {
+  fill: var(--background-secondary);
+  stroke: #ccc;
+  stroke-width: 1.5;
+}
+
+.mindmap-expand-text {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Inline text editor */
+.mindmap-text-input {
+  position: absolute;
+  border: 2px solid var(--interactive-accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Dark theme */
+.theme-dark .mindmap-node-rect.level1-node {
+  stroke: #555;
+}
+
+.theme-dark .mindmap-node-underline {
+  stroke: #555;
+}
+
+.theme-dark .mindmap-expand-btn circle {
+  fill: var(--background-secondary);
+  stroke: #666;
+}
+
+.mindmap-mark {
+  font-size: 14px;
+  pointer-events: none;
+  user-select: none;
+  dominant-baseline: central;
+}
