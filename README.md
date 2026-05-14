@@ -30,3 +30,7 @@ A free mindmap plugin with tree-style rendering, compatible with Markmind JSON f
 | `Shift+Enter` | New line in edit |
 | `Cmd+Z` | Undo |
 | `Esc` | Cancel edit |
+
+### [Daily Diary Template](./daily-diary-template/)
+
+Generate a daily diary template with an image placeholder and current time.

@@ -1,0 +1,14 @@
+{
+  "templateItems": [
+    "工作",
+    "技能提升",
+    "今日新知",
+    "读书",
+    "生活"
+  ],
+  "childListItems": [
+    "工作"
+  ],
+  "subListStyle": "unordered",
+  "listStyle": "unordered"
+}

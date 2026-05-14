@@ -1,0 +1,8 @@
+{
+  "id": "daily-diary-template",
+  "name": "Daily Diary Template",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Generate daily diary template with [Image #2] placeholder and current time",
+  "author": "zhangchaocun"
+}
