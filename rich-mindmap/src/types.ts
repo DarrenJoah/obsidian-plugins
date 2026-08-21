@@ -48,3 +48,16 @@ export interface ViewportState {
   panY: number;
   scale: number;
 }
+
+export interface MindmapViewState {
+  version: 1;
+  file: string;
+  viewport?: ViewportState;
+}
+
+export interface ContentBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}

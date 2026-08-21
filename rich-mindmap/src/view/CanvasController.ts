@@ -1,6 +1,9 @@
 import { ViewportState } from "../types";
 
 export class CanvasController {
+  private static readonly MIN_SCALE = 0.2;
+  private static readonly MAX_SCALE = 3;
+
   viewport: ViewportState = { panX: 0, panY: 0, scale: 1 };
   private svgEl: SVGSVGElement | null = null;
   private onUpdate: (() => void) | null = null;
@@ -30,12 +33,55 @@ export class CanvasController {
   }
 
   detach(): void {
-    if (!this.svgEl) return;
-    this.svgEl.removeEventListener("mousedown", this.boundMouseDown);
+    if (this.svgEl) {
+      this.svgEl.removeEventListener("mousedown", this.boundMouseDown);
+      this.svgEl.removeEventListener("wheel", this.boundWheel);
+    }
     window.removeEventListener("mousemove", this.boundMouseMove);
     window.removeEventListener("mouseup", this.boundMouseUp);
-    this.svgEl.removeEventListener("wheel", this.boundWheel);
     this.svgEl = null;
+    this.onUpdate = null;
+    this.isDragging = false;
+  }
+
+  getViewport(): ViewportState {
+    return { ...this.viewport };
+  }
+
+  setViewport(viewport: ViewportState, notify = true): boolean {
+    if (!CanvasController.isValidViewport(viewport)) return false;
+    this.viewport = {
+      panX: viewport.panX,
+      panY: viewport.panY,
+      scale: Math.max(
+        CanvasController.MIN_SCALE,
+        Math.min(CanvasController.MAX_SCALE, viewport.scale)
+      ),
+    };
+    if (notify) this.onUpdate?.();
+    return true;
+  }
+
+  setPanY(panY: number, notify = true): boolean {
+    if (!Number.isFinite(panY)) return false;
+    this.viewport.panY = panY;
+    if (notify) this.onUpdate?.();
+    return true;
+  }
+
+  static isValidViewport(viewport: unknown): viewport is ViewportState {
+    if (!viewport || typeof viewport !== "object") return false;
+    const value = viewport as Record<string, unknown>;
+    return (
+      typeof value.panX === "number" &&
+      Number.isFinite(value.panX) &&
+      typeof value.panY === "number" &&
+      Number.isFinite(value.panY) &&
+      typeof value.scale === "number" &&
+      Number.isFinite(value.scale) &&
+      value.scale >= CanvasController.MIN_SCALE &&
+      value.scale <= CanvasController.MAX_SCALE
+    );
   }
 
   centerOn(x: number, y: number): void {
@@ -81,13 +127,22 @@ export class CanvasController {
     e.preventDefault();
     if (!this.svgEl) return;
 
+    if (!e.metaKey) {
+      this.viewport.panY -= e.deltaY;
+      this.onUpdate?.();
+      return;
+    }
+
     const rect = this.svgEl.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
     const oldScale = this.viewport.scale;
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newScale = Math.max(0.2, Math.min(3, oldScale + delta));
+    const newScale = Math.max(
+      CanvasController.MIN_SCALE,
+      Math.min(CanvasController.MAX_SCALE, oldScale + delta)
+    );
 
     const worldX = (mouseX - this.viewport.panX) / oldScale;
     const worldY = (mouseY - this.viewport.panY) / oldScale;

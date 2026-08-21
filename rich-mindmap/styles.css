@@ -16,6 +16,38 @@
   cursor: grabbing;
 }
 
+.mindmap-scrollbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.mindmap-scrollbar.is-hidden {
+  display: none;
+}
+
+.mindmap-scrollbar-spacer {
+  width: 1px;
+  pointer-events: none;
+}
+
+.mindmap-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--text-error);
+  background: var(--background-primary);
+  z-index: 20;
+}
+
 /* Root node (depth 0): filled blue */
 .mindmap-node-rect.root-node {
   fill: #4A7DDB;

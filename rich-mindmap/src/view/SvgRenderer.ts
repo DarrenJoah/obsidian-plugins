@@ -1,4 +1,4 @@
-import { TreeNode, ViewportState } from "../types";
+import { ContentBounds, TreeNode, ViewportState } from "../types";
 import { NODE_HEIGHT, NODE_BORDER_RADIUS } from "../constants";
 import { getNodeWidth, measureTextWidth } from "../layout/TreeLayout";
 
@@ -42,6 +42,24 @@ export class SvgRenderer {
 
   getSvgElement(): SVGSVGElement {
     return this.svg;
+  }
+
+  getContentBounds(): ContentBounds | null {
+    try {
+      const bounds = this.wrapper.getBBox();
+      const values = [bounds.x, bounds.y, bounds.width, bounds.height];
+      if (!values.every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0) {
+        return null;
+      }
+      return {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    } catch {
+      return null;
+    }
   }
 
   applyViewport(viewport: ViewportState): void {

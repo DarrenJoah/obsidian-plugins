@@ -1,10 +1,12 @@
-import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { Plugin, TFile } from "obsidian";
 import { VIEW_TYPE_RICH_MINDMAP } from "./constants";
 import { MindmapView } from "./view/MindmapView";
 import { MindmapData } from "./model/MindmapData";
 import { hasMindmapFrontmatter } from "./util/parse";
 
 export default class RichMindmapPlugin extends Plugin {
+  private fileOpenGeneration = 0;
+
   async onload(): Promise<void> {
     this.registerView(VIEW_TYPE_RICH_MINDMAP, (leaf) => new MindmapView(leaf));
 
@@ -35,11 +37,13 @@ export default class RichMindmapPlugin extends Plugin {
 
     this.registerEvent(
       this.app.workspace.on("file-open", async (file) => {
+        const generation = ++this.fileOpenGeneration;
         if (!file || file.extension !== "md") return;
         const content = await this.app.vault.read(file);
+        if (generation !== this.fileOpenGeneration) return;
         if (hasMindmapFrontmatter(content)) {
           const leaf = this.app.workspace.getActiveViewOfType(MindmapView);
-          if (!leaf) {
+          if (!leaf && this.app.workspace.getActiveFile()?.path === file.path) {
             await this.openMindmapFile(file);
           }
         }
@@ -48,29 +52,17 @@ export default class RichMindmapPlugin extends Plugin {
   }
 
   private async openMindmapFile(file: TFile): Promise<void> {
-    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_RICH_MINDMAP);
-    let leaf: WorkspaceLeaf;
-
-    if (leaves.length > 0) {
-      leaf = leaves[0];
-    } else {
-      const activeLeaf = this.app.workspace.getLeaf(false);
-      if (activeLeaf) {
-        leaf = activeLeaf;
-      } else {
-        leaf = this.app.workspace.getLeaf(true);
-      }
-    }
+    const activeLeaf = this.app.workspace.getLeaf(false);
+    const leaf = activeLeaf ?? this.app.workspace.getLeaf(true);
 
     await leaf.setViewState({
       type: VIEW_TYPE_RICH_MINDMAP,
       active: true,
+      state: {
+        version: 1,
+        file: file.path,
+      },
     });
-
-    const view = leaf.view as MindmapView;
-    if (view && view.getViewType() === VIEW_TYPE_RICH_MINDMAP) {
-      await view.loadFile(file);
-    }
 
     this.app.workspace.revealLeaf(leaf);
   }
