@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.0.1 - 2026-08-30
+
+### Daily Diary Template
+
+- 支持在 Obsidian 预览模式执行 `Insert Daily Diary Template` 命令。
+- 模板插入后显式保存活动笔记，确保通过 Obsidian CLI 调用时内容立即写入 Markdown 文件。
+
 ## 1.1.0 - 2026-08-21
 
 ### 新增

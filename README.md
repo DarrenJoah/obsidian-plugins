@@ -43,6 +43,7 @@
 - 支持指定哪些条目需要自动生成子列表
 - 子列表支持无序列表和有序列表两种格式
 - 默认快捷键为 `Cmd/Ctrl + Shift + K`
+- 支持在预览模式使用命令面板或 Obsidian CLI 执行模板插入
 
 **安装：**
 1. 将 `daily-diary-template/` 复制到你的 Obsidian 仓库 `.obsidian/plugins/` 目录下

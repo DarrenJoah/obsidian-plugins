@@ -21,15 +21,16 @@ class DailyDiaryTemplatePlugin extends obsidian_1.Plugin {
                     key: 'K',
                 },
             ],
-            editorCallback: (editor) => {
-                this.insertTemplate(editor);
+            editorCallback: async (editor) => {
+                await this.insertTemplate(editor);
             },
+            allowPreview: true,
         });
 
         this.addSettingTab(new DailyDiaryTemplateSettingTab(this.app, this));
     }
 
-    insertTemplate(editor) {
+    async insertTemplate(editor) {
         const now = new Date();
         const timeStr = this.formatTime(now);
         const dateStr = this.formatDate(now);
@@ -44,6 +45,11 @@ ${itemLines}
 
 `;
         editor.replaceSelection(template);
+
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+            await this.app.vault.modify(activeFile, editor.getValue());
+        }
     }
 
     getTemplateItems() {
