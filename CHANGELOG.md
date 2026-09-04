@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.0.2 - 2026-09-04
+
+### Daily Diary Template
+
+- 新增 `Insert Diary Template for Date`，可选择历史日期并在当前光标位置插入模板。
+- 新增自动化日期队列命令；历史模板按日期倒序插入对应位置，成功后自动清除队列文件。
+
 ## 1.0.1 - 2026-08-30
 
 ### Daily Diary Template

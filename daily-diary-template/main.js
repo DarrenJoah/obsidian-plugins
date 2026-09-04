@@ -27,29 +27,114 @@ class DailyDiaryTemplatePlugin extends obsidian_1.Plugin {
             allowPreview: true,
         });
 
+        this.addCommand({
+            id: 'insert-diary-template-for-date',
+            name: 'Insert Diary Template for Date',
+            editorCallback: (editor) => {
+                new DiaryDateModal(this.app, async (date) => {
+                    await this.insertTemplate(editor, date);
+                }).open();
+            },
+            allowPreview: true,
+        });
+
+        this.addCommand({
+            id: 'insert-diary-template-for-pending-date',
+            name: 'Insert Diary Template for Pending Date',
+            editorCallback: async (editor) => {
+                await this.insertTemplateForPendingDate(editor);
+            },
+            allowPreview: true,
+        });
+
         this.addSettingTab(new DailyDiaryTemplateSettingTab(this.app, this));
     }
 
-    async insertTemplate(editor) {
-        const now = new Date();
-        const timeStr = this.formatTime(now);
-        const dateStr = this.formatDate(now);
-        const weekday = this.getWeekday(now);
-        const items = this.getTemplateItems();
-        const itemLines = this.formatTemplateItems(items);
-
-        const template = `**${dateStr} ${weekday} ${timeStr}**
-${itemLines}
-
----
-
-`;
+    async insertTemplate(editor, date = new Date()) {
+        const template = this.buildTemplate(date);
         editor.replaceSelection(template);
 
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
             await this.app.vault.modify(activeFile, editor.getValue());
         }
+    }
+
+    async insertTemplateForPendingDate(editor) {
+        const pendingDatePath = '.obsidian/plugins/daily-diary-template/pending-date.txt';
+        let value;
+
+        try {
+            value = (await this.app.vault.adapter.read(pendingDatePath)).trim();
+        } catch (error) {
+            new obsidian_1.Notice('No pending diary date was provided.');
+            return;
+        }
+
+        const date = this.parseDate(value);
+        if (!date) {
+            new obsidian_1.Notice('Pending diary date must use YYYY-MM-DD.');
+            return;
+        }
+
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new obsidian_1.Notice('Open a diary file before inserting a pending date template.');
+            return;
+        }
+
+        const content = await this.app.vault.read(activeFile);
+        const template = this.buildTemplate(date);
+        await this.app.vault.modify(
+            activeFile,
+            this.insertTemplateInDateOrder(content, template, this.formatDate(date)),
+        );
+        await this.app.vault.adapter.remove(pendingDatePath);
+    }
+
+    insertTemplateInDateOrder(content, template, targetDate) {
+        const entryPattern = /^\*\*(\d{4}-\d{2}-\d{2})\b.*$/gm;
+        let entry;
+
+        while ((entry = entryPattern.exec(content)) !== null) {
+            if (entry[1] < targetDate) {
+                return `${content.slice(0, entry.index)}${template}${content.slice(entry.index)}`;
+            }
+        }
+
+        return `${content}${content.endsWith('\n') ? '' : '\n'}${template}`;
+    }
+
+    buildTemplate(date) {
+        const timeStr = this.formatTime(date);
+        const dateStr = this.formatDate(date);
+        const weekday = this.getWeekday(date);
+        const itemLines = this.formatTemplateItems(this.getTemplateItems());
+
+        return `**${dateStr} ${weekday} ${timeStr}**
+${itemLines}
+
+---
+
+`;
+    }
+
+    parseDate(value) {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+        if (!match) {
+            return null;
+        }
+
+        const now = new Date();
+        const date = new Date(
+            Number(match[1]),
+            Number(match[2]) - 1,
+            Number(match[3]),
+            now.getHours(),
+            now.getMinutes(),
+        );
+
+        return this.formatDate(date) === value ? date : null;
     }
 
     getTemplateItems() {
@@ -115,6 +200,68 @@ ${itemLines}
     }
 
     onunload() {}
+}
+
+class DiaryDateModal extends obsidian_1.Modal {
+    constructor(app, onSubmit) {
+        super(app);
+        this.onSubmit = onSubmit;
+    }
+
+    onOpen() {
+        this.contentEl.createEl('h2', { text: 'Insert Diary Template for Date' });
+        const dateInput = this.contentEl.createEl('input', { type: 'date' });
+        dateInput.value = formatDateForInput(new Date());
+        dateInput.style.width = '100%';
+
+        const actions = this.contentEl.createDiv({ cls: 'modal-button-container' });
+        const insertButton = actions.createEl('button', { text: 'Insert', cls: 'mod-cta' });
+        actions.createEl('button', { text: 'Cancel' }).addEventListener('click', () => this.close());
+
+        const submit = async () => {
+            const date = parseInputDate(dateInput.value);
+            if (!date) {
+                new obsidian_1.Notice('Please enter a valid date.');
+                return;
+            }
+
+            this.close();
+            await this.onSubmit(date);
+        };
+
+        insertButton.addEventListener('click', submit);
+        dateInput.addEventListener('keydown', async (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                await submit();
+            }
+        });
+        dateInput.focus();
+    }
+}
+
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function parseInputDate(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) {
+        return null;
+    }
+
+    const now = new Date();
+    const date = new Date(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3]),
+        now.getHours(),
+        now.getMinutes(),
+    );
+    return formatDateForInput(date) === value ? date : null;
 }
 
 class DailyDiaryTemplateSettingTab extends obsidian_1.PluginSettingTab {
