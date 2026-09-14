@@ -4,6 +4,8 @@ export interface ContextMenuCallbacks {
   onAddChild: () => void;
   onAddSibling: () => void;
   onEdit: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onDelete: () => void;
   onToggleExpand: () => void;
   onToggleCheck: () => void;
@@ -35,6 +37,18 @@ export function showContextMenu(
   menu.addItem((item) =>
     item.setTitle("Edit text").setIcon("pencil").onClick(callbacks.onEdit)
   );
+
+  if (!isRoot) {
+    menu.addItem((item) =>
+      item.setTitle("Move up").setIcon("arrow-up").onClick(callbacks.onMoveUp)
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle("Move down")
+        .setIcon("arrow-down")
+        .onClick(callbacks.onMoveDown)
+    );
+  }
 
   menu.addSeparator();
   menu.addItem((item) =>

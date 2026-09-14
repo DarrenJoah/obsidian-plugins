@@ -433,6 +433,12 @@ export class MindmapView extends ItemView {
     });
   }
 
+  private moveNode(nodeId: string, direction: "up" | "down"): void {
+    if (!this.data?.moveNode(nodeId, direction)) return;
+    this.rebuildAndRender();
+    this.save();
+  }
+
   private showNodeMenu(nodeId: string, event: MouseEvent): void {
     if (!this.data) return;
     const node = this.data.getNode(nodeId);
@@ -461,6 +467,8 @@ export class MindmapView extends ItemView {
         }
       },
       onEdit: () => this.startEditNode(nodeId),
+      onMoveUp: () => this.moveNode(nodeId, "up"),
+      onMoveDown: () => this.moveNode(nodeId, "down"),
       onDelete: () => {
         this.data!.deleteNode(nodeId);
         this.selection.deselect();
@@ -512,6 +520,16 @@ export class MindmapView extends ItemView {
       const id = this.selection.selectedNodeId;
 
       switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          e.stopPropagation();
+          this.moveNode(id, "up");
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          e.stopPropagation();
+          this.moveNode(id, "down");
+          break;
         case "Enter":
           e.preventDefault();
           e.stopPropagation();

@@ -120,6 +120,36 @@ export class MindmapData {
     return this.addChild(node.pid, text);
   }
 
+  moveNode(nodeId: string, direction: "up" | "down"): boolean {
+    const node = this.getNode(nodeId);
+    if (!node || node.isRoot || !node.pid) return false;
+
+    const siblings = this.getChildren(node.pid);
+    const siblingIndex = siblings.findIndex((sibling) => sibling.id === nodeId);
+    const targetSiblingIndex = direction === "up"
+      ? siblingIndex - 1
+      : siblingIndex + 1;
+    if (
+      siblingIndex < 0 ||
+      targetSiblingIndex < 0 ||
+      targetSiblingIndex >= siblings.length
+    ) return false;
+
+    const nodes = this.getNodes();
+    const nodeIndex = nodes.findIndex((item) => item.id === nodeId);
+    const targetNodeIndex = nodes.findIndex(
+      (item) => item.id === siblings[targetSiblingIndex].id
+    );
+    if (nodeIndex < 0 || targetNodeIndex < 0) return false;
+
+    this.pushUndo();
+    [nodes[nodeIndex], nodes[targetNodeIndex]] = [
+      nodes[targetNodeIndex],
+      nodes[nodeIndex],
+    ];
+    return true;
+  }
+
   deleteNode(nodeId: string): void {
     this.pushUndo();
     const node = this.getNode(nodeId);
