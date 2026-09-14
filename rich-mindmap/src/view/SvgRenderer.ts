@@ -135,6 +135,7 @@ export class SvgRenderer {
     const text = document.createElementNS(SVG_NS, "text");
     text.setAttribute("text-anchor", depth >= 2 ? "start" : "middle");
     text.setAttribute("dominant-baseline", "central");
+    text.style.fontSize = `${this.fontSize}px`;
     text.classList.add("mindmap-node-text");
     if (depth === 0) text.classList.add("root-node-text");
     const firstLineY = node.layoutY - (lines.length - 1) * 10;
@@ -149,7 +150,7 @@ export class SvgRenderer {
 
     // Mark icon (✅ or ❌) right after text
     if (node.data.mark) {
-      const textW = measureTextWidth(node.data.text, 14);
+      const textW = measureTextWidth(node.data.text, this.fontSize);
       const markX = depth >= 2
         ? textX + textW + 5
         : textCenterX + textW / 2 + 5;
