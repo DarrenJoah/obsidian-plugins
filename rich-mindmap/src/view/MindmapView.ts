@@ -177,6 +177,13 @@ export class MindmapView extends ItemView {
       this.showNodeMenu(id, event);
     };
 
+    this.renderer.onNodeMove = (id, targetSiblingIndex) => {
+      if (!this.data?.moveNodeToIndex(id, targetSiblingIndex)) return;
+      this.selection.select(id);
+      this.rebuildAndRender();
+      this.save();
+    };
+
     this.renderer.onExpandToggle = (id) => {
       this.data?.toggleExpand(id);
       this.rebuildAndRender();

@@ -129,6 +129,15 @@
   user-select: none;
 }
 
+.mindmap-node {
+  cursor: grab;
+}
+
+.mindmap-node.dragging {
+  cursor: grabbing;
+  opacity: 0.75;
+}
+
 /* Root text: white */
 .mindmap-node-text.root-node-text {
   fill: #ffffff;

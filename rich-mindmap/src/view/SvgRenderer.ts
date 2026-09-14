@@ -19,6 +19,7 @@ export class SvgRenderer {
   onNodeClick: ((nodeId: string) => void) | null = null;
   onNodeDblClick: ((nodeId: string) => void) | null = null;
   onNodeContextMenu: ((nodeId: string, event: MouseEvent) => void) | null = null;
+  onNodeMove: ((nodeId: string, targetSiblingIndex: number) => void) | null = null;
   onExpandToggle: ((nodeId: string) => void) | null = null;
   onBackgroundClick: (() => void) | null = null;
 
@@ -195,7 +196,64 @@ export class SvgRenderer {
     }
 
     // Event handlers
+    let suppressClick = false;
+    if (node.parent && node.parent.children.length > 1) {
+      g.addEventListener("mousedown", (event) => {
+        if (
+          event.button !== 0 ||
+          (event.target as Element).closest(".mindmap-expand-btn")
+        ) return;
+
+        const startY = event.clientY;
+        const startRect = g.getBoundingClientRect();
+        const startCenterY = startRect.top + startRect.height / 2;
+        let dragging = false;
+        const onMouseMove = (moveEvent: MouseEvent) => {
+          const deltaY = moveEvent.clientY - startY;
+          if (!dragging && Math.abs(deltaY) < 4) return;
+          dragging = true;
+          moveEvent.preventDefault();
+          g.classList.add("dragging");
+          const scale = Math.abs(this.svg.getScreenCTM()?.a || 1);
+          g.setAttribute("transform", `translate(0, ${deltaY / scale})`);
+        };
+        const onMouseUp = (upEvent: MouseEvent) => {
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+          if (!dragging) return;
+
+          suppressClick = true;
+          g.classList.remove("dragging");
+          g.removeAttribute("transform");
+          const otherSiblings = node.parent!.children.filter(
+            (sibling) => sibling.data.id !== node.data.id
+          );
+          const dropCenterY = startCenterY + upEvent.clientY - startY;
+          const targetSiblingIndex = otherSiblings.filter((sibling) => {
+            const rect = this.getNodeScreenRect(sibling.data.id, {
+              panX: 0,
+              panY: 0,
+              scale: 1,
+            });
+            return rect && dropCenterY > rect.y + rect.height / 2;
+          }).length;
+          this.onNodeMove?.(node.data.id, targetSiblingIndex);
+          window.setTimeout(() => {
+            suppressClick = false;
+          }, 0);
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      });
+    }
+
     g.addEventListener("click", (e) => {
+      if (suppressClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.stopPropagation();
       this.onNodeClick?.(node.data.id);
     });

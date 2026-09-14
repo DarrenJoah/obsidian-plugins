@@ -129,24 +129,36 @@ export class MindmapData {
     const targetSiblingIndex = direction === "up"
       ? siblingIndex - 1
       : siblingIndex + 1;
+    return this.moveNodeToIndex(nodeId, targetSiblingIndex);
+  }
+
+  moveNodeToIndex(nodeId: string, targetSiblingIndex: number): boolean {
+    const node = this.getNode(nodeId);
+    if (!node || node.isRoot || !node.pid) return false;
+
+    const siblings = this.getChildren(node.pid);
+    const siblingIndex = siblings.findIndex((sibling) => sibling.id === nodeId);
     if (
       siblingIndex < 0 ||
       targetSiblingIndex < 0 ||
-      targetSiblingIndex >= siblings.length
+      targetSiblingIndex >= siblings.length ||
+      targetSiblingIndex === siblingIndex
     ) return false;
 
     const nodes = this.getNodes();
-    const nodeIndex = nodes.findIndex((item) => item.id === nodeId);
-    const targetNodeIndex = nodes.findIndex(
-      (item) => item.id === siblings[targetSiblingIndex].id
+    const siblingNodeIndices = siblings.map((sibling) =>
+      nodes.findIndex((item) => item.id === sibling.id)
     );
-    if (nodeIndex < 0 || targetNodeIndex < 0) return false;
+    if (siblingNodeIndices.some((index) => index < 0)) return false;
+
+    const reorderedSiblings = [...siblings];
+    const [movedNode] = reorderedSiblings.splice(siblingIndex, 1);
+    reorderedSiblings.splice(targetSiblingIndex, 0, movedNode);
 
     this.pushUndo();
-    [nodes[nodeIndex], nodes[targetNodeIndex]] = [
-      nodes[targetNodeIndex],
-      nodes[nodeIndex],
-    ];
+    siblingNodeIndices.forEach((nodeIndex, index) => {
+      nodes[nodeIndex] = reorderedSiblings[index];
+    });
     return true;
   }
 
