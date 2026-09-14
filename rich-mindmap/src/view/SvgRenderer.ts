@@ -8,6 +8,7 @@ import {
 } from "../layout/TreeLayout";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const MARK_GAP = 8;
 
 export class SvgRenderer {
   private svg: SVGSVGElement;
@@ -94,6 +95,7 @@ export class SvgRenderer {
     g.classList.add("mindmap-node");
     if (isSelected) g.classList.add("selected");
     g.setAttribute("data-node-id", node.data.id);
+    this.nodesGroup.appendChild(g);
 
     if (depth <= 1) {
       // Root (depth 0) and level-1 nodes: rectangle with border
@@ -151,9 +153,16 @@ export class SvgRenderer {
     // Mark icon (✅ or ❌) right after text
     if (node.data.mark) {
       const textW = measureTextWidth(node.data.text, this.fontSize);
-      const markX = depth >= 2
-        ? textX + textW + 5
-        : textCenterX + textW / 2 + 5;
+      const estimatedMarkX = depth >= 2
+        ? textX + textW + MARK_GAP
+        : textCenterX + textW / 2 + MARK_GAP;
+      let markX = estimatedMarkX;
+      try {
+        const textBounds = text.getBBox();
+        markX = textBounds.x + textBounds.width + MARK_GAP;
+      } catch {
+        // Keep the canvas-based estimate if SVG measurement is unavailable.
+      }
       const markText = document.createElementNS(SVG_NS, "text");
       markText.setAttribute("x", String(markX));
       markText.setAttribute("y", String(node.layoutY));
@@ -288,8 +297,6 @@ export class SvgRenderer {
       e.stopPropagation();
       this.onNodeContextMenu?.(node.data.id, e);
     });
-
-    this.nodesGroup.appendChild(g);
 
     // Render children and lines
     if (node.data.isExpand) {
