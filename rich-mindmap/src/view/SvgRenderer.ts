@@ -207,6 +207,10 @@ export class SvgRenderer {
         const startY = event.clientY;
         const startRect = g.getBoundingClientRect();
         const startCenterY = startRect.top + startRect.height / 2;
+        const incomingLine = Array.from(
+          this.linesGroup.querySelectorAll<SVGPolylineElement>(".mindmap-line")
+        ).find((line) => line.dataset.childId === node.data.id);
+        const originalLinePoints = incomingLine?.getAttribute("points") ?? "";
         let dragging = false;
         const onMouseMove = (moveEvent: MouseEvent) => {
           const deltaY = moveEvent.clientY - startY;
@@ -215,7 +219,20 @@ export class SvgRenderer {
           moveEvent.preventDefault();
           g.classList.add("dragging");
           const scale = Math.abs(this.svg.getScreenCTM()?.a || 1);
-          g.setAttribute("transform", `translate(0, ${deltaY / scale})`);
+          const localDeltaY = deltaY / scale;
+          g.setAttribute("transform", `translate(0, ${localDeltaY})`);
+          if (incomingLine) {
+            const startX = Number(incomingLine.dataset.startX);
+            const startLineY = Number(incomingLine.dataset.startY);
+            const endX = Number(incomingLine.dataset.endX);
+            const endY = Number(incomingLine.dataset.endY) + localDeltaY;
+            const midX = startX + (endX - startX) / 2;
+            incomingLine.setAttribute(
+              "points",
+              `${startX},${startLineY} ${midX},${startLineY} ${midX},${endY} ${endX},${endY}`
+            );
+            incomingLine.classList.add("dragging");
+          }
         };
         const onMouseUp = (upEvent: MouseEvent) => {
           window.removeEventListener("mousemove", onMouseMove);
@@ -225,6 +242,10 @@ export class SvgRenderer {
           suppressClick = true;
           g.classList.remove("dragging");
           g.removeAttribute("transform");
+          if (incomingLine) {
+            incomingLine.setAttribute("points", originalLinePoints);
+            incomingLine.classList.remove("dragging");
+          }
           const otherSiblings = node.parent!.children.filter(
             (sibling) => sibling.data.id !== node.data.id
           );
@@ -286,6 +307,12 @@ export class SvgRenderer {
     const midX = startX + (endX - startX) / 2;
 
     const polyline = document.createElementNS(SVG_NS, "polyline");
+    polyline.dataset.parentId = parent.data.id;
+    polyline.dataset.childId = child.data.id;
+    polyline.dataset.startX = String(startX);
+    polyline.dataset.startY = String(startY);
+    polyline.dataset.endX = String(endX);
+    polyline.dataset.endY = String(endY);
     polyline.setAttribute(
       "points",
       `${startX},${startY} ${midX},${startY} ${midX},${endY} ${endX},${endY}`

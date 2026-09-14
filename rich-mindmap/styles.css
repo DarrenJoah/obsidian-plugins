@@ -153,6 +153,10 @@
   stroke-linejoin: round;
 }
 
+.mindmap-line.dragging {
+  stroke-width: 2.5;
+}
+
 /* Expand/collapse button */
 .mindmap-expand-btn {
   cursor: pointer;
