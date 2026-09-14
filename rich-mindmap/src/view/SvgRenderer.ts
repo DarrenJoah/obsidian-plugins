@@ -1,6 +1,11 @@
 import { ContentBounds, TreeNode, ViewportState } from "../types";
-import { NODE_HEIGHT, NODE_BORDER_RADIUS } from "../constants";
-import { getNodeWidth, measureTextWidth } from "../layout/TreeLayout";
+import { NODE_BORDER_RADIUS, NODE_PADDING_H } from "../constants";
+import {
+  getNodeHeight,
+  getNodeWidth,
+  measureTextWidth,
+  splitNodeLines,
+} from "../layout/TreeLayout";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -78,8 +83,9 @@ export class SvgRenderer {
   private renderNode(node: TreeNode, selectedId: string | null): void {
     const hasMark = !!node.data.mark;
     const nodeWidth = getNodeWidth(node.data.text, this.fontSize, hasMark);
+    const nodeHeight = getNodeHeight(node.data.text);
     const x = node.layoutX;
-    const y = node.layoutY - NODE_HEIGHT / 2;
+    const y = node.layoutY - nodeHeight / 2;
     const isSelected = node.data.id === selectedId;
     const depth = node.depth;
 
@@ -94,7 +100,7 @@ export class SvgRenderer {
       rect.setAttribute("x", String(x));
       rect.setAttribute("y", String(y));
       rect.setAttribute("width", String(nodeWidth));
-      rect.setAttribute("height", String(NODE_HEIGHT));
+      rect.setAttribute("height", String(nodeHeight));
       rect.setAttribute("rx", String(NODE_BORDER_RADIUS));
       rect.setAttribute("ry", String(NODE_BORDER_RADIUS));
       rect.classList.add("mindmap-node-rect");
@@ -113,30 +119,39 @@ export class SvgRenderer {
       hitRect.setAttribute("x", String(x));
       hitRect.setAttribute("y", String(y));
       hitRect.setAttribute("width", String(nodeWidth));
-      hitRect.setAttribute("height", String(NODE_HEIGHT));
+      hitRect.setAttribute("height", String(nodeHeight));
       hitRect.classList.add("mindmap-node-rect", "leaf-node");
       hitRect.style.fill = "transparent";
       hitRect.style.pointerEvents = "all";
       g.appendChild(hitRect);
     }
 
-    // Text centered in the base width (excluding mark space)
+    // Root and level-1 text is centered; deeper nodes are left-aligned.
     const baseWidth = hasMark ? nodeWidth - 20 : nodeWidth;
+    const textCenterX = x + baseWidth / 2;
+    const textX = depth >= 2 ? x + NODE_PADDING_H : textCenterX;
+    const lines = splitNodeLines(node.data.text);
     const text = document.createElementNS(SVG_NS, "text");
-    text.setAttribute("x", String(x + baseWidth / 2));
-    text.setAttribute("y", String(node.layoutY));
-    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("text-anchor", depth >= 2 ? "start" : "middle");
     text.setAttribute("dominant-baseline", "central");
     text.classList.add("mindmap-node-text");
     if (depth === 0) text.classList.add("root-node-text");
-    text.textContent = node.data.text;
+    const firstLineY = node.layoutY - (lines.length - 1) * 10;
+    lines.forEach((line, index) => {
+      const tspan = document.createElementNS(SVG_NS, "tspan");
+      tspan.setAttribute("x", String(textX));
+      tspan.setAttribute("y", String(firstLineY + index * 20));
+      tspan.textContent = line || " ";
+      text.appendChild(tspan);
+    });
     g.appendChild(text);
 
     // Mark icon (✅ or ❌) right after text
     if (node.data.mark) {
       const textW = measureTextWidth(node.data.text, 14);
-      const textCenterX = x + baseWidth / 2;
-      const markX = textCenterX + textW / 2 + 5;
+      const markX = depth >= 2
+        ? textX + textW + 5
+        : textCenterX + textW / 2 + 5;
       const markText = document.createElementNS(SVG_NS, "text");
       markText.setAttribute("x", String(markX));
       markText.setAttribute("y", String(node.layoutY));

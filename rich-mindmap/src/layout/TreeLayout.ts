@@ -9,7 +9,18 @@ export function measureTextWidth(text: string, fontSize: number): number {
   }
   const ctx = measureCanvas.getContext("2d")!;
   ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-  return ctx.measureText(text).width;
+  return Math.max(
+    ...splitNodeLines(text).map((line) => ctx.measureText(line).width),
+    0
+  );
+}
+
+export function splitNodeLines(text: string): string[] {
+  return String(text ?? "").split(/\r?\n/);
+}
+
+export function getNodeHeight(text: string): number {
+  return Math.max(NODE_HEIGHT, splitNodeLines(text).length * 20 + 12);
 }
 
 const MARK_WIDTH = 20;
@@ -21,8 +32,9 @@ export function getNodeWidth(text: string, fontSize: number = 16, hasMark = fals
 }
 
 function computeSubtreeHeight(node: TreeNode, fontSize: number): void {
+  const nodeHeight = getNodeHeight(node.data.text);
   if (node.children.length === 0 || !node.data.isExpand) {
-    node.subtreeHeight = NODE_HEIGHT;
+    node.subtreeHeight = nodeHeight;
     return;
   }
   for (const child of node.children) {
@@ -31,7 +43,7 @@ function computeSubtreeHeight(node: TreeNode, fontSize: number): void {
   const totalChildrenHeight =
     node.children.reduce((sum, c) => sum + c.subtreeHeight, 0) +
     V_GAP * (node.children.length - 1);
-  node.subtreeHeight = Math.max(NODE_HEIGHT, totalChildrenHeight);
+  node.subtreeHeight = Math.max(nodeHeight, totalChildrenHeight);
 }
 
 function assignPositions(

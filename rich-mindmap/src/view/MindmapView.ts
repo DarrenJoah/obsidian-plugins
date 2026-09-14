@@ -23,9 +23,12 @@ export class MindmapView extends ItemView {
   private keyboardSetup = false;
   private scrollbar: HTMLElement | null = null;
   private scrollbarSpacer: HTMLElement | null = null;
+  private horizontalScrollbar: HTMLElement | null = null;
+  private horizontalScrollbarSpacer: HTMLElement | null = null;
   private errorEl: HTMLElement | null = null;
   private contentBounds: ContentBounds | null = null;
   private pendingScrollbarTop: number | null = null;
+  private pendingHorizontalScrollLeft: number | null = null;
   private pendingInitialFit = false;
   private loadGeneration = 0;
 
@@ -65,6 +68,17 @@ export class MindmapView extends ItemView {
       cls: "mindmap-scrollbar-spacer",
     });
     this.scrollbar.addEventListener("scroll", this.handleScrollbarScroll);
+
+    this.horizontalScrollbar = this.container.createDiv({
+      cls: "mindmap-horizontal-scrollbar is-hidden",
+    });
+    this.horizontalScrollbarSpacer = this.horizontalScrollbar.createDiv({
+      cls: "mindmap-horizontal-scrollbar-spacer",
+    });
+    this.horizontalScrollbar.addEventListener(
+      "scroll",
+      this.handleHorizontalScrollbarScroll
+    );
   }
 
   getState(): Record<string, unknown> {
@@ -197,8 +211,10 @@ export class MindmapView extends ItemView {
 
   private applyViewport(requestSave = false): void {
     this.clampVerticalViewport();
+    this.clampHorizontalViewport();
     this.renderer?.applyViewport(this.canvas.viewport);
     this.updateScrollbar();
+    this.updateHorizontalScrollbar();
     if (requestSave) this.app.workspace.requestSaveLayout();
   }
 
@@ -214,6 +230,21 @@ export class MindmapView extends ItemView {
         - this.contentBounds.y * this.canvas.viewport.scale;
     if (Math.abs(clamped - this.canvas.viewport.panY) >= 0.5) {
       this.canvas.setPanY(clamped, false);
+    }
+  }
+
+  private clampHorizontalViewport(): void {
+    if (!this.contentBounds) return;
+    const range = this.getHorizontalScrollRange();
+    if (range.viewportWidth <= 0) return;
+    const leftPanX = this.getPanXForScrollLeft(0, range);
+    const rightPanX = this.getPanXForScrollLeft(range.maxScroll, range);
+    const clamped = range.maxScroll > 0
+      ? Math.max(rightPanX, Math.min(leftPanX, this.canvas.viewport.panX))
+      : (range.viewportWidth - this.contentBounds.width * this.canvas.viewport.scale) / 2
+        - this.contentBounds.x * this.canvas.viewport.scale;
+    if (Math.abs(clamped - this.canvas.viewport.panX) >= 0.5) {
+      this.canvas.setPanX(clamped, false);
     }
   }
 
@@ -264,6 +295,28 @@ export class MindmapView extends ItemView {
     this.applyViewport(true);
   };
 
+  private handleHorizontalScrollbarScroll = (): void => {
+    if (!this.horizontalScrollbar || !this.contentBounds) return;
+    if (
+      this.pendingHorizontalScrollLeft !== null &&
+      Math.abs(
+        this.horizontalScrollbar.scrollLeft - this.pendingHorizontalScrollLeft
+      ) < 0.5
+    ) {
+      this.pendingHorizontalScrollLeft = null;
+      return;
+    }
+    this.pendingHorizontalScrollLeft = null;
+    const range = this.getHorizontalScrollRange();
+    const panX = this.getPanXForScrollLeft(
+      this.horizontalScrollbar.scrollLeft,
+      range
+    );
+    if (Math.abs(panX - this.canvas.viewport.panX) < 0.5) return;
+    this.canvas.setPanX(panX, false);
+    this.applyViewport(true);
+  };
+
   private getScrollRange(): { maxScroll: number; viewportHeight: number; padding: number } {
     const svg = this.renderer?.getSvgElement();
     const viewportHeight = svg?.getBoundingClientRect().height ?? 0;
@@ -281,6 +334,36 @@ export class MindmapView extends ItemView {
     return range.padding - (this.contentBounds?.y ?? 0) * this.canvas.viewport.scale - clamped;
   }
 
+  private getHorizontalScrollRange(): {
+    maxScroll: number;
+    viewportWidth: number;
+    padding: number;
+  } {
+    const svg = this.renderer?.getSvgElement();
+    const viewportWidth = svg?.getBoundingClientRect().width ?? 0;
+    const padding = MindmapView.SCROLL_PADDING;
+    const contentWidth =
+      (this.contentBounds?.width ?? 0) * this.canvas.viewport.scale +
+      padding * 2;
+    return {
+      maxScroll: Math.max(0, contentWidth - viewportWidth),
+      viewportWidth,
+      padding,
+    };
+  }
+
+  private getPanXForScrollLeft(
+    scrollLeft: number,
+    range: { maxScroll: number; padding: number }
+  ): number {
+    const clamped = Math.max(0, Math.min(range.maxScroll, scrollLeft));
+    return (
+      range.padding -
+      (this.contentBounds?.x ?? 0) * this.canvas.viewport.scale -
+      clamped
+    );
+  }
+
   private updateScrollbar(): void {
     if (!this.scrollbar || !this.scrollbarSpacer || !this.contentBounds) return;
     const range = this.getScrollRange();
@@ -294,6 +377,29 @@ export class MindmapView extends ItemView {
     if (Math.abs(this.scrollbar.scrollTop - clamped) < 0.5) return;
     this.pendingScrollbarTop = clamped;
     this.scrollbar.scrollTop = clamped;
+  }
+
+  private updateHorizontalScrollbar(): void {
+    if (
+      !this.horizontalScrollbar ||
+      !this.horizontalScrollbarSpacer ||
+      !this.contentBounds
+    ) return;
+    const range = this.getHorizontalScrollRange();
+    const shouldShow = range.maxScroll > 0 && range.viewportWidth > 0;
+    this.horizontalScrollbar.classList.toggle("is-hidden", !shouldShow);
+    if (!shouldShow) return;
+
+    this.horizontalScrollbarSpacer.style.width =
+      `${range.viewportWidth + range.maxScroll}px`;
+    const scrollLeft =
+      range.padding -
+      this.contentBounds.x * this.canvas.viewport.scale -
+      this.canvas.viewport.panX;
+    const clamped = Math.max(0, Math.min(range.maxScroll, scrollLeft));
+    if (Math.abs(this.horizontalScrollbar.scrollLeft - clamped) < 0.5) return;
+    this.pendingHorizontalScrollLeft = clamped;
+    this.horizontalScrollbar.scrollLeft = clamped;
   }
 
   private startEditNodeThenSelect(nodeId: string, selectAfter: string): void {
@@ -477,9 +583,15 @@ export class MindmapView extends ItemView {
   async onClose(): Promise<void> {
     this.loadGeneration++;
     this.scrollbar?.removeEventListener("scroll", this.handleScrollbarScroll);
+    this.horizontalScrollbar?.removeEventListener(
+      "scroll",
+      this.handleHorizontalScrollbarScroll
+    );
     this.canvas.detach();
     this.editor.cancelEdit();
     this.scrollbar = null;
     this.scrollbarSpacer = null;
+    this.horizontalScrollbar = null;
+    this.horizontalScrollbarSpacer = null;
   }
 }

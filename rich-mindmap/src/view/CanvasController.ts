@@ -69,6 +69,13 @@ export class CanvasController {
     return true;
   }
 
+  setPanX(panX: number, notify = true): boolean {
+    if (!Number.isFinite(panX)) return false;
+    this.viewport.panX = panX;
+    if (notify) this.onUpdate?.();
+    return true;
+  }
+
   static isValidViewport(viewport: unknown): viewport is ViewportState {
     if (!viewport || typeof viewport !== "object") return false;
     const value = viewport as Record<string, unknown>;
@@ -127,8 +134,15 @@ export class CanvasController {
     e.preventDefault();
     if (!this.svgEl) return;
 
-    if (!e.metaKey) {
-      this.viewport.panY -= e.deltaY;
+    if (!e.metaKey && !e.ctrlKey) {
+      let deltaX = e.deltaX;
+      let deltaY = e.deltaY;
+      if (e.shiftKey && Math.abs(deltaX) < Math.abs(deltaY)) {
+        deltaX = deltaY;
+        deltaY = 0;
+      }
+      this.viewport.panX -= deltaX;
+      this.viewport.panY -= deltaY;
       this.onUpdate?.();
       return;
     }
@@ -138,10 +152,12 @@ export class CanvasController {
     const mouseY = e.clientY - rect.top;
 
     const oldScale = this.viewport.scale;
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
     const newScale = Math.max(
       CanvasController.MIN_SCALE,
-      Math.min(CanvasController.MAX_SCALE, oldScale + delta)
+      Math.min(
+        CanvasController.MAX_SCALE,
+        oldScale * Math.exp(-e.deltaY * 0.01)
+      )
     );
 
     const worldX = (mouseX - this.viewport.panX) / oldScale;

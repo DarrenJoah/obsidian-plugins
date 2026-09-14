@@ -20,7 +20,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
+  bottom: 14px;
   width: 14px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -33,6 +33,26 @@
 
 .mindmap-scrollbar-spacer {
   width: 1px;
+  pointer-events: none;
+}
+
+.mindmap-horizontal-scrollbar {
+  position: absolute;
+  right: 14px;
+  bottom: 0;
+  left: 0;
+  height: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  z-index: 10;
+}
+
+.mindmap-horizontal-scrollbar.is-hidden {
+  display: none;
+}
+
+.mindmap-horizontal-scrollbar-spacer {
+  height: 1px;
   pointer-events: none;
 }
 
@@ -50,8 +70,8 @@
 
 /* Root node (depth 0): filled blue */
 .mindmap-node-rect.root-node {
-  fill: #4A7DDB;
-  stroke: #3A6BC5;
+  fill: #4a7ddb;
+  stroke: #3a6bc5;
   stroke-width: 2;
   rx: 8;
   ry: 8;
