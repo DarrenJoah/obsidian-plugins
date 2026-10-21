@@ -2,6 +2,7 @@ import { TreeNode } from "../types";
 import { NODE_HEIGHT, NODE_MIN_WIDTH, NODE_PADDING_H, H_GAP, V_GAP, ROOT_X, ROOT_Y } from "../constants";
 
 let measureCanvas: HTMLCanvasElement | null = null;
+const NODE_MAX_LINE_LENGTH = 40;
 
 export function measureTextWidth(text: string, fontSize: number): number {
   if (!measureCanvas) {
@@ -16,7 +17,18 @@ export function measureTextWidth(text: string, fontSize: number): number {
 }
 
 export function splitNodeLines(text: string): string[] {
-  return String(text ?? "").split(/\r?\n/);
+  const lines: string[] = [];
+  for (const line of String(text ?? "").split(/\r?\n/)) {
+    const characters = Array.from(line);
+    if (characters.length === 0) {
+      lines.push("");
+      continue;
+    }
+    for (let start = 0; start < characters.length; start += NODE_MAX_LINE_LENGTH) {
+      lines.push(characters.slice(start, start + NODE_MAX_LINE_LENGTH).join(""));
+    }
+  }
+  return lines;
 }
 
 export function getNodeHeight(text: string): number {
