@@ -1,4 +1,4 @@
-import { ItemView, TFile, ViewStateResult, WorkspaceLeaf } from "obsidian";
+import { FileView, TFile, ViewStateResult, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_RICH_MINDMAP } from "../constants";
 import { ContentBounds, MindmapViewState, TreeNode, ViewportState } from "../types";
 import { MindmapData } from "../model/MindmapData";
@@ -10,14 +10,14 @@ import { NodeEditor } from "./NodeEditor";
 import { SelectionManager } from "../interaction/SelectionManager";
 import { showContextMenu } from "../interaction/ContextMenu";
 
-export class MindmapView extends ItemView {
+export class MindmapView extends FileView {
   private data: MindmapData | null = null;
   private tree: TreeNode | null = null;
   private renderer: SvgRenderer | null = null;
   private canvas: CanvasController;
   private editor: NodeEditor;
   private selection: SelectionManager;
-  private file: TFile | null = null;
+  private restoredViewport: ViewportState | undefined;
   private container: HTMLElement | null = null;
   private saving = false;
   private keyboardSetup = false;
@@ -82,27 +82,32 @@ export class MindmapView extends ItemView {
   }
 
   getState(): Record<string, unknown> {
-    if (!this.file) return {};
+    if (!this.file) return super.getState();
     const state: MindmapViewState = {
       version: MindmapView.VIEW_STATE_VERSION,
       file: this.file.path,
       viewport: this.canvas.getViewport(),
     };
-    return state as unknown as Record<string, unknown>;
+    return { ...super.getState(), ...state };
   }
 
   async setState(state: unknown, result: ViewStateResult): Promise<void> {
-    await super.setState(state, result);
     const parsed = this.parseViewState(state);
-    if (!parsed) return;
-
-    const file = this.app.vault.getAbstractFileByPath(parsed.file);
-    if (!(file instanceof TFile)) {
-      this.showError(`Mindmap file not found: ${parsed.file}`);
-      return;
+    this.restoredViewport = parsed?.viewport;
+    try {
+      await super.setState(state, result);
+    } finally {
+      this.restoredViewport = undefined;
     }
 
-    await this.loadFile(file, parsed.viewport);
+    if (parsed?.viewport && this.file && this.data) {
+      this.canvas.setViewport(parsed.viewport, false);
+      this.applyViewport(false);
+    }
+  }
+
+  async onLoadFile(file: TFile): Promise<void> {
+    await this.loadFile(file, this.restoredViewport);
   }
 
   async loadFile(file: TFile, restoredViewport?: ViewportState): Promise<void> {
